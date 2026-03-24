@@ -24,6 +24,9 @@ from pyht import Client
 from pyht.client import TTSOptions
 import pyttsx3
 from aitts_maker import generate_tts
+from translator_button import language_selector, translate
+
+
 
 #============================================================
 # Title Section
@@ -31,18 +34,15 @@ from aitts_maker import generate_tts
 # Notas de Desarrollador:
 # - Mejorar markdown visualmente con emojis y formato
 
-st.title("Text-to-Speech Application")
-st.markdown("""
-🎙️ **This application allows you to convert text into speech** using various *TTS engines*.
+lang = language_selector(default_lang="en")
 
-🎛️ You can personalize the **__voice__**, **__speed__**, and **__language__** of the generated speech.
+st.title(translate("Text-to-Speech Application",lang))
+st.markdown(translate("🎙️ **This application allows you to convert text into speech** using various *TTS engines*." ,lang))
+st.markdown(translate("🎛️ You can personalize the **__voice__**, **__speed__**, and **__language__** of the generated speech." ,lang))
+st.markdown(translate("🧠 The application supports multiple *TTS engines*, including **gTTS**, **Edge TTS**, **PyHT**, **pyttsx3**, and **aitts_maker**." ,lang))
+st.markdown(translate("✍️ You can **input text directly** or provide a *URL* to extract text from a webpage." ,lang))
+st.markdown(translate("🔊 The generated speech can be **played directly in the browser** or **downloaded as an audio file**.",lang))
 
-🧠 The application supports multiple *TTS engines*, including **gTTS**, **Edge TTS**, **PyHT**, **pyttsx3**, and **aitts_maker**.
-
-✍️ You can **input text directly** or provide a *URL* to extract text from a webpage.
-
-🔊 The generated speech can be **played directly in the browser** or **downloaded as an audio file**.
-""")
 
 #============================================================
 # Text Mode - Text Input / URL Input
