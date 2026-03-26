@@ -289,6 +289,9 @@ def inject_css():
             top: 10px;
             right: 14px;
         }
+        
+        
+}       
     </style>
     """, unsafe_allow_html=True)
 
@@ -327,10 +330,19 @@ def gtts_has_accents(language_code: str) -> bool:
 2
 
 #================================================================
-# Processing Functions - Text extraction, TTS generation, Button
+# Processing Functions - Text extraction
 #================================================================
 
-
+def extract_text_from_url(url: str) -> str:
+    """Extracts the main text from a webpage given its URL."""
+    try:
+        article = newspaper.Article(url)
+        article.download()
+        article.parse()
+        return article.text
+    except Exception as e:
+        st.error(translate("Error extracting text from URL:", lang) + f" {e}")
+        return ""
 
 #============================================================
 #   Audio Management - List to store generated audio objects, function to create audio objects and manage them
@@ -339,77 +351,49 @@ def gtts_has_accents(language_code: str) -> bool:
 def render_card(audio: Audio, index: int):
     c = audio.color
 
-    st.markdown(f"""
-    <div class="audio-card-wrapper">
-        <div style="
-            position: relative;
-            border: 1.5px solid {c['border']};
-            border-radius: 14px;
-            padding: 16px 18px 12px 18px;
-            background: {c['bg']};
-            box-shadow: 0 0 18px {c['glow']}, 0 2px 8px rgba(0,0,0,0.3);
-        ">
-            <span style="
-                font-family: 'JetBrains Mono', monospace;
-                font-size: 0.65rem; opacity: 0.4;
-                position: absolute; top: 10px; right: 14px;
-            ">#{index + 1}</span>
-
-            <div style="margin-bottom: 10px;">
-                <span style="
-                    background: {c['tag_bg']}; color: {c['tag_text']};
-                    border: 1px solid {c['border']}; border-radius: 20px;
-                    padding: 2px 10px; font-size: 0.7rem;
-                    font-family: 'JetBrains Mono', monospace;
-                    font-weight: 600; letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                ">⬡ {audio.model}</span>
-            </div>
-
-            <p style="
-                font-style: italic;
-                color: rgba(200, 210, 230, 0.45);
-                font-size: 0.85rem;
-                font-family: 'JetBrains Mono', monospace;
-                line-height: 1.5; margin: 0 0 10px 0;
-                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            ">&ldquo;{audio.display_text}&rdquo;</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="audio-card-wrapper"><div style="position:relative;border:1.5px solid {c['border']};border-radius:14px;padding:16px 18px 12px 18px;background:{c['bg']};box-shadow:0 0 18px {c['glow']},0 2px 8px rgba(0,0,0,0.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;opacity:0.4;position:absolute;top:10px;right:14px;">#{index + 1}</span><div style="margin-bottom:10px;"><span style="background:{c['tag_bg']};color:{c['tag_text']};border:1px solid {c['border']};border-radius:20px;padding:2px 10px;font-size:0.7rem;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;">⬡ {audio.model}</span></div><p style="font-style:italic;color:rgba(200,210,230,0.45);font-size:0.85rem;font-family:'JetBrains Mono',monospace;line-height:1.5;margin:0 0 10px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&ldquo;{audio.display_text}&rdquo;</p></div></div>""", unsafe_allow_html=True)
 
     st.audio(audio.audio_bytes, format="audio/mp3")
 
-    if st.button("🗑️", key=f"del_{audio.id}", help="Eliminar", use_container_width=True):
+    if st.button("🗑️", key=f"del_{audio.id}", use_container_width=True):
         st.session_state.audios.pop(index)
         st.rerun()
 
-def render_audio_grid():
+def render_audio_grid(lang: str = "en"):
     audios = st.session_state.audios
     if not audios:
-        st.markdown("""
-        <div style="text-align:center; padding: 40px;
-                    color: rgba(150,160,180,0.35); font-style: italic;">
-            No hay audios generados todavía.
-        </div>
-        """, unsafe_allow_html=True)
+        msg = translate("No hay audios generados todavía.", lang)
+        st.markdown(f"""<div style="text-align:center;padding:40px;color:rgba(150,160,180,0.35);font-style:italic;">{msg}</div>""", unsafe_allow_html=True)
         return
 
     n = len(audios)
-    st.markdown(f"""
-    <p style="color: rgba(150,160,180,0.5); font-size: 0.8rem;
-              font-family: 'JetBrains Mono', monospace; margin-bottom: 12px;">
-        {n} audio{'s' if n != 1 else ''} generado{'s' if n != 1 else ''}
-    </p>
-    """, unsafe_allow_html=True)
+    label_audio   = translate("audio", lang)
+    label_audios  = translate("audios", lang)
+    label_generado  = translate("generado", lang)
+    label_generados = translate("generados", lang)
 
-    # Grups of 4 cards per row
+    st.markdown(f"""<p style="color:rgba(150,160,180,0.5);font-size:0.8rem;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">{n} {label_audios if n != 1 else label_audio} {label_generados if n != 1 else label_generado}</p>""", unsafe_allow_html=True)
+
+    # Groups of 4 cards per row
     for row_start in range(0, n, 4):
         row_audios = audios[row_start : row_start + 4]
         cols = st.columns(len(row_audios))
         for col, (audio, abs_index) in zip(cols, [(a, row_start + i) for i, a in enumerate(row_audios)]):
             with col:
                 render_card(audio, abs_index)
+
+#============================================================
+# Inicialize Session State Variables
+#============================================================
+
+if 'speech_model' not in st.session_state:
+    st.session_state.speech_model = "gtts"  # Default model for new sessions
+
+if 'audios' not in st.session_state:
+    st.session_state.audios = []  # List to store generated audio objects
+
+if 'text_mode' not in st.session_state:
+    st.session_state.text_mode = "text"  # Default input mode
 
 #============================================================
 # Language Selection
@@ -440,19 +424,20 @@ st.subheader(translate("Generated Audios", lang))
 if "audios" not in st.session_state:
     st.session_state.audios = []
 
-render_audio_grid()
+render_audio_grid(lang)
 
 #============================================================
 # Text Area - Text Input / URL Input
 #============================================================
 
-tab_url, tab_text = st.tabs([translate("URL",lang), translate("Texto normal",lang)])
-with tab_url:
-    text_mode = "url"
-    url_input = st.text_input(translate("Introduce la URL:",lang))
+tab_text, tab_url = st.tabs([translate("Texto normal",lang), translate("URL",lang)])
+
 with tab_text:
-    text_mode = "text"
+    st.session_state.text_mode = "text"
     text_input = st.text_area(translate("Introduce tu texto:",lang))
+with tab_url:
+    st.session_statetext_mode = "url"
+    url_input = st.text_input(translate("Introduce la URL:",lang))
 
 #============================================================
 # Processing Area - Select TTS Engine and his parameters
@@ -461,7 +446,7 @@ st.subheader(translate("Select TTS Engine and Parameters",lang))
 tab_gtts, tab_edge, tab_pyht, tab_pyttsx3, tab_aitts = st.tabs(["gTTS", "Edge TTS", "PyHT", "pyttsx3", "aitts_maker"])
 with tab_gtts:
     st.markdown(translate("### gTTS Parameters",lang))
-    speach_model = "gtts"
+    st.session_state.speach_model = "gtts"
     gtts_lang = st.selectbox(
         translate("Select language for gTTS:", lang),
         options=list(GTTSLENGUAGES.keys()),
@@ -474,27 +459,45 @@ with tab_gtts:
             format_func=lambda tld: translate(next(accent["accent"] for accent in gtts_options if accent["tld"] == tld), lang).capitalize())
 with tab_edge:
     st.markdown(translate("### edge_TTS Parameters",lang))
-    speach_model = "edge"
+    st.session_state.speach_model = "edge"
+
 with tab_pyht:
     st.markdown(translate("### PyHT Parameters",lang))
-    speach_model = "pyht"
+    st.session_state.speach_model = "pyht"
 with tab_pyttsx3:
     st.markdown(translate("### pyttsx3 Parameters",lang))
-    speach_model = "pyttsx3"
+    st.session_state.speach_model = "pyttsx3"
 with tab_aitts: 
     st.markdown(translate("### aitts_maker Parameters",lang))
-    speach_model = "aitts"
+    st.session_state.speach_model = "aitts"
+
+#============================================================
+# Process Button - Generate TTS
+#============================================================
 
 generate_button = st.button(translate("Generate Speech",lang))
 if generate_button:
-    tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
-    audio_buffer = BytesIO()
-    tts.write_to_fp(audio_buffer)
+    
+    if st.session_state.text_mode == "url":
+        if not url_input.strip():
+            st.error(translate("Please enter a URL.", lang))
+            st.stop()
+        text_input = extract_text_from_url(url_input)
+        if not text_input.strip():
+            st.error(translate("No text could be extracted from the provided URL.", lang))
+            st.stop()
+    if st.session_state.text_mode == "text" and not text_input.strip():
+        st.error(translate("Please enter some text to convert to speech.", lang))
+        st.stop()
+    if st.session_state.speach_model == "gtts":
+        tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+        audio_buffer = BytesIO()
+        tts.write_to_fp(audio_buffer)
 
-    nuevo_audio = Audio(
+    new_audio = Audio(
         text=text_input,
-        model=speach_model,       
+        model=st.session_state.get("speech_model", "gtts"),       
         audio_bytes=audio_buffer.getvalue()
     )
-    st.session_state.audios.append(nuevo_audio)
+    st.session_state.audios.append(new_audio)
     st.rerun()  
