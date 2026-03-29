@@ -23,6 +23,7 @@ from translator_button import language_selector, translate
 from gtts.lang import tts_langs
 from io import BytesIO
 import uuid
+import time
 #============================================================
 # Classes
 #============================================================
@@ -351,20 +352,20 @@ def render_card(audio: Audio, index: int):
     
     st.audio(audio.audio_bytes, format="audio/mp3")
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1.33, 0.66])
     
-    with col1:    
-        if st.button("🗑️", key=f"del_{audio.id}", use_container_width=True):
-            st.session_state.audios.pop(index)
-            st.rerun()
-
-    with col2:
+    with col1:
         st.download_button(
             label="⬇️",
             data=audio.audio_bytes,
-            file_name=f"{audio.model}_{index + 1}.mp3",
+            file_name=f"{audio.model}_{index + 1}_{int(time.time())}.mp3",
             use_container_width=True
         )
+
+    with col2:    
+        if st.button("🗑️", key=f"del_{audio.id}", use_container_width=True):
+            st.session_state.audios.pop(index)
+            st.rerun()
 
 def render_audio_grid(lang: str = "en"):
     audios = st.session_state.audios
