@@ -2,12 +2,11 @@
 Text-to-Speech Application using Streamlit
 
 This application allows users to convert text into speech using gTTS.
-You can personalize the voice, and language of the generated speech. The application supports
-multiple TTS engines, including gTTS, Edge TTS, PyHT, pyttsx3, and aitts_maker. Users can input text directly or provide a URL
-to extract text from a webpage. The generated speech can be played directly in the browser or downloaded as an audio file.
+You can personalize language of the generated speech. Users can input text directly or provide a URL
+to extract text from a webpage. The generated speech can be played directly in the browser or downloaded as an .mp3 file.
 
 Author: Rubén García Lajara
-Version: 0.3
+Version: 1.0
 File: text-to-speach.py
 
 """
@@ -18,6 +17,8 @@ File: text-to-speach.py
 import streamlit as st
 from gtts import gTTS
 from newspaper import Article, Config
+import nltk
+nltk.download('punkt_tab')
 from translator_button import language_selector, translate
 from gtts.lang import tts_langs
 from io import BytesIO
@@ -338,15 +339,32 @@ def render_card(audio: Audio, index: int):
             authors_joined = ", ".join(art.authors)
             authors_str = f'<div style="color:rgba(200,210,230,0.4);font-size:0.72rem;font-family:\'JetBrains Mono\',monospace;margin-top:4px;">✍️ {authors_joined}</div>'
 
-        inner_content = f"""<div style="margin-bottom:8px;"><p style="color:rgba(220,230,245,0.92);font-size:1.05rem;font-family:'JetBrains Mono',monospace;font-weight:700;line-height:1.4;margin:0;">{title}</p>{date_str}{authors_str}</div>"""
+        summary_str = ""
+        if art.summary:
+            summary_str = f'<div style="color:rgba(200,210,230,0.7);font-size:0.8rem;font-family:\'JetBrains Mono\',monospace;margin-top:10px;line-height:1.5;">{art.summary}</div>'
+
+        inner_content = f"""<div style="margin-bottom:8px;"><p style="color:rgba(220,230,245,0.92);font-size:1.05rem;font-family:'JetBrains Mono',monospace;font-weight:700;line-height:1.4;margin:0;">{title}</p>{date_str}{authors_str}{summary_str}</div>"""
     else:
-        st.markdown(f"""<div class="audio-card-wrapper"><div style="position:relative;border:1.5px solid {c['border']};border-radius:14px;padding:16px 18px 12px 18px;background:{c['bg']};box-shadow:0 0 18px {c['glow']},0 2px 8px rgba(0,0,0,0.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;opacity:0.4;position:absolute;top:10px;right:14px;">#{index + 1}</span><div style="margin-bottom:10px;"><span style="background:{c['tag_bg']};color:{c['tag_text']};border:1px solid {c['border']};border-radius:20px;padding:2px 10px;font-size:0.7rem;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;">⬡ {audio.model}</span></div><p style="font-style:italic;color:rgba(200,210,230,0.45);font-size:0.85rem;font-family:'JetBrains Mono',monospace;line-height:1.5;margin:0 0 10px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&ldquo;{audio.display_text}&rdquo;</p></div></div>""", unsafe_allow_html=True)
+        inner_content = f"""<p style="font-style:italic;color:rgba(200,210,230,0.45);font-size:0.85rem;font-family:'JetBrains Mono',monospace;line-height:1.5;margin:0 0 10px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&ldquo;{audio.display_text}&rdquo;</p>"""
+        
+    st.markdown(f"""<div class="audio-card-wrapper"><div style="position:relative;border:1.5px solid {c['border']};border-radius:14px;padding:16px 18px 12px 18px;background:{c['bg']};box-shadow:0 0 18px {c['glow']},0 2px 8px rgba(0,0,0,0.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;opacity:0.4; position:absolute;top:10px;right:14px;">#{index + 1}</span><div style="margin-bottom:10px;"><span style="background:{c['tag_bg']};color:{c['tag_text']};border:1px solid {c['border']};border-radius:20px;padding:2px 10px;font-size:0.7rem; font-family:'JetBrains Mono',monospace;font-weight:600; letter-spacing:0.06em;text-transform:uppercase;">⬡ {audio.model}</span></div>{inner_content}</div></div>""", unsafe_allow_html=True)
+    
+    st.audio(audio.audio_bytes, format="audio/mp3")
 
-        st.audio(audio.audio_bytes, format="audio/mp3")
+    col1, col2 = st.columns(2)
+    
+    with col1:    
+        if st.button("🗑️", key=f"del_{audio.id}", use_container_width=True):
+            st.session_state.audios.pop(index)
+            st.rerun()
 
-    if st.button("🗑️", key=f"del_{audio.id}", use_container_width=True):
-        st.session_state.audios.pop(index)
-        st.rerun()
+    with col2:
+        st.download_button(
+            label="⬇️",
+            data=audio.audio_bytes,
+            file_name=f"{audio.model}_{index + 1}.mp3",
+            use_container_width=True
+        )
 
 def render_audio_grid(lang: str = "en"):
     audios = st.session_state.audios
@@ -395,17 +413,16 @@ st.write(translate("Select Language for the website", lang))
 # Title Area
 #============================================================
 
-st.title(translate("Text-to-Speech Application",lang))
-st.markdown(translate("🎙️ **This application allows you to convert text into speech** using various *TTS engines*." ,lang))
-st.markdown(translate("🎛️ You can personalize the **__voice__**, **__speed__**, and **__language__** of the generated speech." ,lang))
-st.markdown(translate("🧠 The application supports multiple *TTS engines*, including **gTTS**, **Edge TTS**, **PyHT**, **pyttsx3**, and **aitts_maker**." ,lang))
-st.markdown(translate("✍️ You can **input text directly** or provide a *URL* to extract text from a webpage." ,lang))
-st.markdown(translate("🔊 The generated speech can be **played directly in the browser** or **downloaded as an audio file**.",lang))
-
+st.title(translate("Text-to-Speech Application", lang))
+st.markdown(translate("🎙️ **This application allows you to convert text into speech** using *GTTS*.", lang))
+st.markdown(translate("🎛️ You can personalize the **__speed__**, **__language__**, and **__accent__** of the generated speech.", lang))
+st.markdown(translate("✍️ You can **input text directly** or provide a *URL* to extract text from a webpage.", lang))
+st.markdown(translate("🔊 The generated speech can be **played directly in the browser** or **downloaded as an .mp3 file**.", lang))
 #============================================================
 # Audio Area
 #============================================================
 
+st.divider()
 st.subheader(translate("Generated Audios", lang))
 
 # Initialize audio list in session state if it doesn't exist
@@ -418,29 +435,35 @@ render_audio_grid(lang)
 # Text Area - Text Input / URL Input
 #============================================================
 
-tab_text, tab_url = st.tabs([translate("Text",lang), translate("URL",lang)])
+st.divider()
+st.markdown(translate("### Input Text or URL",lang))
 
-with tab_text:
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button(translate("Text Mode",lang), use_container_width=True):
+        st.session_state.text_mode = "text"
+with col2:
+    if st.button(translate("URL Mode",lang), use_container_width=True):
+        st.session_state.text_mode = "url"
+
+if st.session_state.text_mode == "text":
     text_input = st.text_area(translate("Enter your text:",lang))
-    if text_input:
-            st.session_state.text_mode = "text"
-            st.session_state.previous_text_mode = "text" # Store the last non-empty text input mode
-with tab_url:
+if st.session_state.text_mode == "url":
     url_input = st.text_input(translate("Enter the URL:",lang))
-    if url_input:
-            st.session_state.text_mode = "url"
-            st.session_state.previous_text_mode = "url" # Store the last non-empty text input mode
+
 
 #============================================================
 # Processing Area - Select GTTS Parameters 
 #============================================================
+st.divider()
 st.markdown(translate("### gTTS Parameters",lang))
 gtts_lang = st.selectbox(
     translate("Select language for gTTS:", lang),
     options=list(GTTSLENGUAGES.keys()),
     index=list(GTTSLENGUAGES.keys()).index(lang),
     format_func=lambda x: translate(GTTSLENGUAGES[x], lang).capitalize())
-gtts_slow = st.checkbox(translate("Slow speed",lang), value=True)
+gtts_slow = st.checkbox(translate("Slow speed",lang), value=False)
 gtts_options = gtts_get_accents(gtts_lang)
 gtts_tld = st.selectbox(translate("Select TLD for gTTS:",lang),
     options=[accent["tld"] for accent in gtts_options], index=0,
@@ -453,25 +476,29 @@ gtts_tld = st.selectbox(translate("Select TLD for gTTS:",lang),
 generate_button = st.button(translate("Generate Speech",lang))
 if generate_button:
     
+    
     if st.session_state.text_mode == "url":
         if not url_input.strip():
             st.error(translate("Please enter a URL.", lang))
             st.stop()
-        text_input = extract_text_from_url(url_input)
-
-        if not text_input.strip():
+        url_input = extract_text_from_url(url_input)
+        text_input = url_input
+        if not url_input.text.strip():
             st.error(translate("No text could be extracted from the provided URL.", lang))
             st.stop()
-    if (st.session_state.text_mode == "text" and not text_input.strip() ) or (st.session_state.previous_text_mode == "text" and not text_input.strip()):
+    if (st.session_state.text_mode == "text" and not text_input.strip() ):
         st.error(translate("Please enter some text to convert to speech.", lang))
         st.stop()
-    if (st.sesion_state.text_mode == "url" and not url_input.strip() ) or (st.session_state.previous_text_mode == "url" and not url_input.strip()):
+    if (st.session_state.text_mode == "url" and not url_input.text.strip() ):
         st.error(translate("Please enter a URL to extract text from.", lang))
         st.stop()
-
-    tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+    if st.session_state.text_mode == "text":
+        tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+    else:
+        tts = gTTS(text=url_input.text, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
     audio_buffer = BytesIO()
     tts.write_to_fp(audio_buffer)
+
 
     new_audio = Audio(
         input=text_input,
@@ -480,7 +507,7 @@ if generate_button:
         audio_bytes=audio_buffer.getvalue()
     )
 
-    st.session_state.text_mode = ""  # Reset input mode after processing
+
 
     st.session_state.audios.append(new_audio)
     st.rerun()
