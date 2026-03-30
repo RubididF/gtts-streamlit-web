@@ -7,10 +7,9 @@ to extract text from a webpage. The generated speech can be played directly in t
 
 Author: Rubén García Lajara
 Version: 1.0
-File: text-to-speach.py
+File: text-to-speech.py
 
 """
-
 # ============================================================
 # Import necessary libraries
 # ============================================================
@@ -24,17 +23,16 @@ from gtts.lang import tts_langs
 from io import BytesIO
 import uuid
 import time
-#============================================================
+# ============================================================
 # Classes
-#============================================================
-
+# ============================================================
 class Audio:
-    def __init__(self, input: str | Article, model: str, text_mode:str,audio_bytes: bytes):
+    def __init__(self, input: str | Article, model: str, text_mode: str, audio_bytes: bytes):
         self.input        = input
-        self.model       = model
-        self.text_mode   = text_mode
-        self.audio_bytes = audio_bytes
-        self.id          = str(uuid.uuid4())
+        self.model        = model
+        self.text_mode    = text_mode
+        self.audio_bytes  = audio_bytes
+        self.id           = str(uuid.uuid4())
  
     @property
     def color(self):
@@ -47,10 +45,10 @@ class Audio:
         return self.input[:MAX_TEXT_CHARS] + "…"
 
 
-#=============================================================
+# =============================================================
 # Constants
-#=============================================================
-GTTSLENGUAGES = tts_langs()  # Languages supported by gTTS
+# =============================================================
+GTTS_LANGUAGES = tts_langs()  # Languages supported by gTTS
 GTTS_ACCENTS: dict[str, list[dict[str, str]]] = {
 
     # ── Languages WITH multiple accents ────────────────────────────────
@@ -71,7 +69,6 @@ GTTS_ACCENTS: dict[str, list[dict[str, str]]] = {
         {"tld": "be", "accent": "Belgium"},
         {"tld": "ch", "accent": "Switzerland"},
     ],
-    # fr-CA is already its own code, but also accepts TLD
     "fr-CA": [
         {"tld": "ca", "accent": "Canada"},
         {"tld": "fr", "accent": "France"},
@@ -88,7 +85,6 @@ GTTS_ACCENTS: dict[str, list[dict[str, str]]] = {
         {"tld": "com.br", "accent": "Brazil"},
         {"tld": "pt",     "accent": "Portugal"},
     ],
-    # pt-PT is already its own code
     "pt-PT": [
         {"tld": "pt",     "accent": "Portugal"},
         {"tld": "com.br", "accent": "Brazil"},
@@ -122,7 +118,6 @@ GTTS_ACCENTS: dict[str, list[dict[str, str]]] = {
         {"tld": "com",    "accent": "Mandarin"},
         {"tld": "com.hk", "accent": "Hong Kong"},
     ],
-    # Cantonese (yue) — HK vs international variants
     "yue": [
         {"tld": "com.hk", "accent": "Hong Kong"},
         {"tld": "com",    "accent": "International"},
@@ -188,7 +183,6 @@ GTTS_ACCENTS: dict[str, list[dict[str, str]]] = {
     "vi":  [{"tld": "com.vn",  "accent": "Vietnamese"}],
 }
 MODEL_COLORS = {
-
     "gtts": {
         "border":     "#F59E0B",
         "bg":         "rgba(245, 158, 11, 0.07)",
@@ -206,9 +200,10 @@ MODEL_COLORS = {
 }
 MAX_TEXT_CHARS = 130  # Maximum visible characters in the audio card
 
-#============================================================
+
+# ============================================================
 # Global CSS
-#============================================================
+# ============================================================
 
 def inject_css():
     st.markdown("""
@@ -257,15 +252,12 @@ def inject_css():
             top: 10px;
             right: 14px;
         }
-        
-        
-}       
     </style>
     """, unsafe_allow_html=True)
 
-#============================================================
+# ============================================================
 # gTTS Functions
-#============================================================
+# ============================================================
 
 def gtts_get_accents(language_code: str) -> list[dict[str, str]]:
     """
@@ -281,8 +273,8 @@ def gtts_get_accents(language_code: str) -> list[dict[str, str]]:
     Raises:
         ValueError: If the language code is not valid for gTTS.
     """
-    if language_code not in GTTSLENGUAGES:
-        supported = ", ".join(sorted(GTTSLENGUAGES.keys()))
+    if language_code not in GTTS_LANGUAGES:
+        supported = ", ".join(sorted(GTTS_LANGUAGES.keys()))
         raise ValueError(
             f"Language '{language_code}' not supported by gTTS. "
             f"Available languages: {supported}"
@@ -297,39 +289,45 @@ def gtts_has_accents(language_code: str) -> bool:
     """Returns True if the language has more than one accent variant."""
     return len(GTTS_ACCENTS.get(language_code, [])) > 1
 
-#================================================================
+# ================================================================
 # Processing Functions - Text extraction
-#================================================================
+# ================================================================
 
 # Newspaper configuration to speed up article extraction by disabling image fetching and memoization
 config = Config()
 config.fetch_images = False
 config.memoize_articles = False
 
-def extract_text_from_url(url: str) -> str:
+def extract_text_from_url(url: str) -> Article | str:
     """Extracts the main text from a webpage given its URL."""
     try:
-        article = Article(url, config=config)
-        article.download()
-        article.parse()
-        article.nlp()
+        with st.status(translate("Extracting text from URL...", lang), expanded=True) as status:
+            st.info(translate("⬇️ Downloading article...", lang))
+            article = Article(url, config=config)
+            article.download()
+
+            st.info(translate("🔍 Parsing content...", lang))
+            article.parse()
+
+            st.info(translate("🧠 Running NLP analysis...", lang))
+            article.nlp()
+
+            status.success(label=translate("✅ Article ready!", lang), state="complete", expanded=False)
         return article
     except Exception as e:
         st.error(translate("Error extracting text from URL:", lang) + f" {e}")
         return "Error"
 
-
-
-#============================================================
+# ============================================================
 # Audio Management - List to store generated audio objects, function to create audio objects and manage them
-#============================================================
+# ============================================================
 
 def render_card(audio: Audio, index: int):
     c = audio.color
     if audio.text_mode == "url":
         art = audio.input
 
-        title = art.title or translate("Sin título")
+        title = art.title or translate("Untitled", lang)
 
         date_str = ""
         if art.publish_date:
@@ -377,10 +375,10 @@ def render_audio_grid(lang: str = "en"):
     n = len(audios)
     label_audio   = translate("audio", lang)
     label_audios  = translate("audios", lang)
-    label_generado  = translate("generated", lang)
-    label_generados = translate("generados", lang)
+    label_generated  = translate("generated", lang)
+    label_generated_plural = translate("generated", lang)
 
-    st.markdown(f"""<p style="color:rgba(150,160,180,0.5);font-size:0.8rem;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">{n} {label_audios if n != 1 else label_audio} {label_generados if n != 1 else label_generado}</p>""", unsafe_allow_html=True)
+    st.markdown(f"""<p style="color:rgba(150,160,180,0.5);font-size:0.8rem;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">{n} {label_audios if n != 1 else label_audio} {label_generated_plural if n != 1 else label_generated}</p>""", unsafe_allow_html=True)
 
     # Groups of 4 cards per row
     for row_start in range(0, n, 4):
@@ -390,9 +388,9 @@ def render_audio_grid(lang: str = "en"):
             with col:
                 render_card(audio, abs_index)
 
-#============================================================
+# ============================================================
 # Initialize Session State Variables
-#============================================================
+# ============================================================
 
 if 'audios' not in st.session_state:
     st.session_state.audios = []  # List to store generated audio objects
@@ -400,28 +398,38 @@ if 'audios' not in st.session_state:
 if 'text_mode' not in st.session_state:
     st.session_state.text_mode = "text"  # Default input mode
 
-if 'previous_text_mode' not in st.session_state:
-    st.session_state.previous_text_mode = "text"  # To track last non-empty input mode
+if 'previous_lang' not in st.session_state:
+    st.session_state.previous_lang = ""  # To track language changes for showing spinner
 
-#============================================================
+# ============================================================
 # Language Selection
-#============================================================
+# ============================================================
 
-lang = language_selector(default_lang="en") # Language selector, default English
+lang = language_selector(default_lang="en")  # Language selector, default English
 st.write(translate("Select Language for the website", lang))
 
-#============================================================
+spinner_placeholder = st.empty()
+
+if st.session_state.previous_lang != lang:
+    st.session_state.previous_lang = lang
+    spinner_placeholder = st.spinner(translate("Translating interface...", lang))
+    spinner_placeholder.__enter__()
+
+st.session_state.previous_lang = lang
+
+# ============================================================
 # Title Area
-#============================================================
+# ============================================================
 
 st.title(translate("Text-to-Speech Application", lang))
 st.markdown(translate("🎙️ **This application allows you to convert text into speech** using *GTTS*.", lang))
 st.markdown(translate("🎛️ You can personalize the **__speed__**, **__language__**, and **__accent__** of the generated speech.", lang))
 st.markdown(translate("✍️ You can **input text directly** or provide a *URL* to extract text from a webpage.", lang))
 st.markdown(translate("🔊 The generated speech can be **played directly in the browser** or **downloaded as an .mp3 file**.", lang))
-#============================================================
+
+# ============================================================
 # Audio Area
-#============================================================
+# ============================================================
 
 st.divider()
 st.subheader(translate("Generated Audios", lang))
@@ -432,74 +440,83 @@ if "audios" not in st.session_state:
 
 render_audio_grid(lang)
 
-#============================================================
+# ============================================================
 # Text Area - Text Input / URL Input
-#============================================================
+# ============================================================
 
 st.divider()
-st.markdown(translate("### Input Text or URL",lang))
+st.markdown(translate("### Input Text or URL", lang))
 
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([1,1])
 
 with col1:
-    if st.button(translate("Text Mode",lang), use_container_width=True):
+    if st.button(translate("Text Mode", lang), use_container_width=True):
         st.session_state.text_mode = "text"
 with col2:
-    if st.button(translate("URL Mode",lang), use_container_width=True):
+    if st.button(translate("URL Mode", lang), use_container_width=True):
         st.session_state.text_mode = "url"
 
 if st.session_state.text_mode == "text":
-    text_input = st.text_area(translate("Enter your text:",lang))
+    text_input = st.text_area(translate("Enter your text:", lang))
 if st.session_state.text_mode == "url":
-    url_input = st.text_input(translate("Enter the URL:",lang))
+    url_input = st.text_input(translate("Enter the URL:", lang))
 
-
-#============================================================
+# ============================================================
 # Processing Area - Select GTTS Parameters 
-#============================================================
+# ============================================================
+
 st.divider()
-st.markdown(translate("### gTTS Parameters",lang))
+st.markdown(translate("### gTTS Parameters", lang))
+
+index_gtts = 0
+if lang in GTTS_LANGUAGES:
+    index_gtts = list(GTTS_LANGUAGES.keys()).index(lang)
 gtts_lang = st.selectbox(
     translate("Select language for gTTS:", lang),
-    options=list(GTTSLENGUAGES.keys()),
-    index=list(GTTSLENGUAGES.keys()).index(lang),
-    format_func=lambda x: translate(GTTSLENGUAGES[x], lang).capitalize())
-gtts_slow = st.checkbox(translate("Slow speed",lang), value=False)
+    options=list(GTTS_LANGUAGES.keys()),
+    index=index_gtts,
+    format_func=lambda x: translate(GTTS_LANGUAGES[x], lang).capitalize())
+
+gtts_slow = st.checkbox(translate("Slow speed", lang), value=False)
 gtts_options = gtts_get_accents(gtts_lang)
-gtts_tld = st.selectbox(translate("Select TLD for gTTS:",lang),
-    options=[accent["tld"] for accent in gtts_options], index=0,
+gtts_tld = st.selectbox(
+    translate("Select TLD for gTTS:", lang),
+    options=[accent["tld"] for accent in gtts_options],
+    index=0,
     format_func=lambda tld: translate(next(accent["accent"] for accent in gtts_options if accent["tld"] == tld), lang).capitalize())
 
-#============================================================
+# ============================================================
 # Process Button - Generate TTS
-#============================================================
+# ============================================================
 
-generate_button = st.button(translate("Generate Speech",lang))
+generate_button = st.button(translate("Generate Speech", lang))
 if generate_button:
-    
-    
     if st.session_state.text_mode == "url":
         if not url_input.strip():
             st.error(translate("Please enter a URL.", lang))
             st.stop()
-        url_input = extract_text_from_url(url_input)
-        text_input = url_input
-        if not url_input.text.strip():
+        text_input = extract_text_from_url(url_input)
+        if isinstance(text_input, str):
+            st.error(translate("Failed to extract text from the provided URL.", lang))
+            st.stop()
+        if not text_input.strip():
             st.error(translate("No text could be extracted from the provided URL.", lang))
             st.stop()
-    if (st.session_state.text_mode == "text" and not text_input.strip() ):
+    if (st.session_state.text_mode == "text" and not text_input.strip()):
         st.error(translate("Please enter some text to convert to speech.", lang))
         st.stop()
-    if (st.session_state.text_mode == "url" and not url_input.text.strip() ):
+    if (st.session_state.text_mode == "url" and not url_input.text.strip()):
         st.error(translate("Please enter a URL to extract text from.", lang))
         st.stop()
-    if st.session_state.text_mode == "text":
-        tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
-    else:
-        tts = gTTS(text=url_input.text, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
-    audio_buffer = BytesIO()
-    tts.write_to_fp(audio_buffer)
-
+    
+    with st.spinner(translate("Generating audio...", lang)):
+        if st.session_state.text_mode == "text":
+            tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+        else:
+            tts = gTTS(text=url_input.text, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+        
+        audio_buffer = BytesIO()
+        tts.write_to_fp(audio_buffer)
 
     new_audio = Audio(
         input=text_input,
@@ -508,7 +525,7 @@ if generate_button:
         audio_bytes=audio_buffer.getvalue()
     )
 
-
-
     st.session_state.audios.append(new_audio)
     st.rerun()
+
+spinner_placeholder.__exit__(None, None, None)
