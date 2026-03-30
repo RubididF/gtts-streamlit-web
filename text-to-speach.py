@@ -6,7 +6,7 @@ You can personalize language of the generated speech. Users can input text direc
 to extract text from a webpage. The generated speech can be played directly in the browser or downloaded as an .mp3 file.
 
 Author: Rubén García Lajara
-Version: 1.0
+Version: 1.2
 File: text-to-speech.py
 
 """
