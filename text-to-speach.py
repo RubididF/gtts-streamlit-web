@@ -6,7 +6,7 @@ You can personalize language of the generated speech. Users can input text direc
 to extract text from a webpage. The generated speech can be played directly in the browser or downloaded as an .mp3 file.
 
 Author: Rubén García Lajara
-Version: 1.2
+Version: 1.4
 File: text-to-speech.py
 
 """
@@ -406,7 +406,7 @@ if 'previous_lang' not in st.session_state:
 #=============================================================
 
 inject_css()  # Inject global CSS styles
-st.set_page_config(page_title="Text-to-Speech with gTTS", page_icon="🗣️", layout="centered")
+st.set_page_config(page_title="GTTS Online", page_icon="🗣️", layout="centered")
 
 # ============================================================
 # Language Selection
