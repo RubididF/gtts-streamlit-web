@@ -401,11 +401,16 @@ if 'text_mode' not in st.session_state:
 if 'previous_lang' not in st.session_state:
     st.session_state.previous_lang = ""  # To track language changes for showing spinner
 
+#=============================================================
+# Web app layout
+#=============================================================
+
+inject_css()  # Inject global CSS styles
+st.set_page_config(page_title="Text-to-Speech with gTTS", page_icon="🗣️", layout="centered")
+
 # ============================================================
 # Language Selection
 # ============================================================
-
-inject_css()  # Inject global CSS styles
 
 lang = language_selector(default_lang="en")  # Language selector, default English
 st.write(translate("Select Language for the website", lang))
