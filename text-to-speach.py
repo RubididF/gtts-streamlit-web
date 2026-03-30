@@ -405,6 +405,8 @@ if 'previous_lang' not in st.session_state:
 # Language Selection
 # ============================================================
 
+inject_css()  # Inject global CSS styles
+
 lang = language_selector(default_lang="en")  # Language selector, default English
 st.write(translate("Select Language for the website", lang))
 
@@ -502,6 +504,7 @@ if generate_button:
         if not url_input.text.strip():
             st.error(translate("No text could be extracted from the provided URL.", lang))
             st.stop()
+        
     if (st.session_state.text_mode == "text" and not text_input.strip()):
         st.error(translate("Please enter some text to convert to speech.", lang))
         st.stop()
@@ -512,14 +515,16 @@ if generate_button:
     with st.spinner(translate("Generating audio...", lang)):
         if st.session_state.text_mode == "text":
             tts = gTTS(text=text_input, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+            input_for_audio = text_input
         else:
             tts = gTTS(text=url_input.text, lang=gtts_lang, slow=gtts_slow, tld=gtts_tld)
+            input_for_audio = url_input
         
         audio_buffer = BytesIO()
         tts.write_to_fp(audio_buffer)
 
     new_audio = Audio(
-        input=text_input,
+        input=input_for_audio,
         model=st.session_state.get("speech_model", "gtts"),   
         text_mode=st.session_state.get("text_mode"),
         audio_bytes=audio_buffer.getvalue()
