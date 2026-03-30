@@ -312,7 +312,7 @@ def extract_text_from_url(url: str) -> Article | str:
             st.info(translate("🧠 Running NLP analysis...", lang))
             article.nlp()
 
-            status.success(label=translate("✅ Article ready!", lang), state="complete", expanded=False)
+            status.update(label=translate("✅ Article ready!", lang), state="complete", expanded=False)
         return article
     except Exception as e:
         st.error(translate("Error extracting text from URL:", lang) + f" {e}")
@@ -495,11 +495,11 @@ if generate_button:
         if not url_input.strip():
             st.error(translate("Please enter a URL.", lang))
             st.stop()
-        text_input = extract_text_from_url(url_input)
-        if isinstance(text_input, str):
+        url_input = extract_text_from_url(url_input)
+        if isinstance(url_input, str):
             st.error(translate("Failed to extract text from the provided URL.", lang))
             st.stop()
-        if not text_input.strip():
+        if not url_input.text.strip():
             st.error(translate("No text could be extracted from the provided URL.", lang))
             st.stop()
     if (st.session_state.text_mode == "text" and not text_input.strip()):
