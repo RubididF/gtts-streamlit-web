@@ -1,6 +1,7 @@
 from gtts.lang import tts_langs
 import streamlit as st
 from gtts import gTTS
+from scr.translator.translator import translate
 t = st.session_state.get("t", {})  # Shortcut to access translations
 
 # ============================================================
@@ -176,18 +177,50 @@ def gtts_has_accents(language_code: str) -> bool:
     """Returns True if the language has more than one accent variant."""
     return len(GTTS_ACCENTS.get(language_code, [])) > 1
 
+def gtts_options_translation(lang: str) -> dict[str, str]:
+    """Returns a dict mapping original text to translated text with progress bar."""
+
+    res: dict[str, str] = {}
+    items = set()
+
+    for lang in GTTS_LANGUAGES:
+        items.add(lang)
+
+    for lang in GTTS_ACCENTS:
+        for accent in GTTS_ACCENTS[lang]:
+            items.add(accent["tld"])
+
+    items = list(items)
+    total = len(items)
+
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    for i, item in enumerate(items, start=1):
+        res[item] = translate(item)
+
+        progress_bar.progress(i / total)
+        status_text.text(f"({i}/{total})")
+
+    progress_bar.progress(1.0)
+    status_text.text(translate("Done ✅", lang))
+
+    return res
+
+
 # ============================================================
 # Parameters for gTTS generation
 # ============================================================
 
-def gtts_streamlit_params(lang: str):
+def gtts_streamlit_params(lang: str, t_gtts: dict[str, str]) -> tuple[str, bool, str]:
     """Returns Streamlit input parameters for gTTS based on the selected language."""
     index_gtts = 0
+
     if lang in GTTS_LANGUAGES:
         index_gtts = list(GTTS_LANGUAGES.keys()).index(lang)
     gtts_lang = st.selectbox(
         t["gtts_select_lang"],
-        options=list(GTTS_LANGUAGES.keys()),
+        options=t_gtts[GTTS_LANGUAGES.keys()],
         index=index_gtts,
         format_func=lambda x: t[GTTS_LANGUAGES[x]].capitalize())
 
@@ -195,7 +228,7 @@ def gtts_streamlit_params(lang: str):
     gtts_options = gtts_get_accents(gtts_lang)
     gtts_tld = st.selectbox(
         t["gtts_select_tld"],
-        options=[accent["tld"] for accent in gtts_options],
+        options=t_gtts[[opt["tld"] for opt in gtts_options]],
         index=0,
         format_func=lambda tld: t[tld].capitalize())
     return gtts_lang, gtts_slow, gtts_tld

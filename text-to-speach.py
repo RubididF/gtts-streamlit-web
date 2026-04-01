@@ -17,7 +17,7 @@ import streamlit as st
 from scr.translator.translator import language_selector, translate
 from scr.translator.i18n import get_translations
 from scr.tts.audio_utils import render_audio_grid, process_audio
-from scr.tts.gtts_engine import gtts_streamlit_params
+from scr.tts.gtts_engine import gtts_streamlit_params, gtts_options_translation
 from scr.process_text import process_final_text_and_errors
 from scr.ui.components import inject_css
 
@@ -111,7 +111,8 @@ if st.session_state.text_mode == "url":
 st.divider()
 st.subheader(t['tts_subheader'])
 
-lang_gtts, slow_gtts, tld_gtts = gtts_streamlit_params(lang)
+t_gtts = gtts_options_translation(lang)
+lang_gtts, slow_gtts, tld_gtts = gtts_streamlit_params(lang, t_gtts)
 
 # ============================================================
 # Process Button - Generate TTS
